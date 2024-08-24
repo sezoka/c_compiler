@@ -34,6 +34,12 @@ const Lexer = struct {
     start_col: u32,
 };
 
+const keywords = std.StaticStringMap(TokenVart).initComptime(.{
+    .{ "int", .kw_int },
+    .{ "void", .kw_void },
+    .{ "return", .kw_return },
+});
+
 pub fn get_tokens(ctx: common.Ctx, src: []const u8) ![]Token {
     var l = Lexer{
         .i = 0,
@@ -110,6 +116,9 @@ fn read_ident(l: *Lexer) Token {
         _ = advance(l);
     }
     const lexeme = get_lexeme(l);
+    if (keywords.get(lexeme)) |tok_vart| {
+        return make_token(l, tok_vart);
+    }
     return make_token(l, .{ .ident = lexeme });
 }
 
