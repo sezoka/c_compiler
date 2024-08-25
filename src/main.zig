@@ -1,13 +1,15 @@
 const std = @import("std");
 const lexer = @import("lexer.zig");
 const common = @import("common.zig");
+const parser = @import("parser.zig");
 
 const CompilerOptions = struct {
     only_lex: bool,
+    only_parse: bool,
 };
 
 pub fn main() u8 {
-    var options = CompilerOptions{ .only_lex = false };
+    var options = CompilerOptions{ .only_lex = false, .only_parse = false };
 
     var args_iter = std.process.args();
     _ = args_iter.next();
@@ -15,8 +17,11 @@ pub fn main() u8 {
     var src_path: ?[]const u8 = null;
 
     while (args_iter.next()) |arg| {
+        std.debug.print("{s}\n", .{arg});
         if (std.mem.eql(u8, arg, "--lex")) {
             options.only_lex = true;
+        } else if (std.mem.eql(u8, arg, "--parse")) {
+            options.only_parse = true;
         } else {
             std.debug.assert(src_path == null);
             src_path = arg;
@@ -37,17 +42,18 @@ pub fn main() u8 {
     const file_src = std.fs.cwd().readFileAlloc(ally, src_path.?, 102400) catch return 1;
 
     const tokens = lexer.get_tokens(ctx, file_src) catch return 2;
-    for (tokens) |token| {
-        if (token.vart == .ident) {
-            std.debug.print("{s}\n", .{token.vart.ident});
-        } else {
-            std.debug.print("{any}\n", .{token});
-        }
-    }
 
     if (options.only_lex) {
         return 0;
     }
+
+    const ast = parser.parse(ctx, tokens) catch return 3;
+
+    if (options.only_parse) {
+        return 0;
+    }
+
+    std.debug.print("{any}\n", .{ast});
 
     return 0;
 }

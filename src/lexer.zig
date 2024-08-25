@@ -16,11 +16,13 @@ pub const TokenVart = union(enum) {
     semicolon,
     eof,
 };
+pub const TokenTag = std.meta.Tag(TokenVart);
 
 pub const Token = struct {
     vart: TokenVart,
     line: u32,
     col: u32,
+    lexeme: []const u8,
 };
 
 const Lexer = struct {
@@ -127,7 +129,12 @@ fn is_at_end(l: *Lexer) bool {
 }
 
 fn make_token(l: *Lexer, vart: TokenVart) Token {
-    return .{ .vart = vart, .line = l.line, .col = l.col };
+    return .{
+        .vart = vart,
+        .line = l.start_line,
+        .col = l.start_col,
+        .lexeme = get_lexeme(l),
+    };
 }
 
 fn skip_whitespace(l: *Lexer) void {
@@ -186,8 +193,3 @@ fn err(l: *Lexer, comptime fmt: []const u8, args: anytype) error{LexerError} {
     log.err(fmt, args, "LexerError", l.start_line, l.start_col);
     return error.LexerError;
 }
-
-// fn err_token(l: *Lexer) error{LexerError} {
-//     log.err("unexpected token '{}'", .{get_lexeme(l)}, "LexerError", l.start_line, l.start_col);
-//     return error.LexerError;
-// }
