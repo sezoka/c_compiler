@@ -2,6 +2,7 @@ const std = @import("std");
 const lexer = @import("lexer.zig");
 const common = @import("common.zig");
 const parser = @import("parser.zig");
+// const asm_ast = @import("asm_ast.zig");
 
 const CompilerOptions = struct {
     only_lex: bool,
@@ -52,6 +53,8 @@ pub fn main() u8 {
     if (options.only_parse) {
         return 0;
     }
+
+    // const ir = asm_ast.convert_to_ir(ctx, &ast);
 
     std.debug.print("{any}\n", .{ast});
 
