@@ -4,5 +4,5 @@ int main(void)
 
 /* hello world */
 {
-  return x;
+  return 123;
 }

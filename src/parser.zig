@@ -4,32 +4,21 @@ const lexer = @import("lexer.zig");
 const constants = @import("constants.zig");
 const common = @import("common.zig");
 
-pub const AstNode = struct {
-    vart: AstVart,
+pub const AstProgram = struct {
+    func_def: AstFuncDef,
 };
 
-pub const AstVart = union(enum) {
-    program: Program,
-    func_def: FuncDefStmt,
-    stmt: StmtVart,
-    expr: ExprVart,
+pub const AstStmt = union(enum) {
+    return_stmt: AstExpr,
 };
 
-pub const Program = struct {
-    func_def: FuncDefStmt,
-};
-
-pub const StmtVart = union(enum) {
-    return_stmt: ExprVart,
-};
-
-pub const ExprVart = union(enum) {
+pub const AstExpr = union(enum) {
     int_literal: constants.Int,
 };
 
-pub const FuncDefStmt = struct {
+pub const AstFuncDef = struct {
     name: []const u8,
-    body: StmtVart,
+    body: AstStmt,
 };
 
 pub const Parser = struct {
@@ -38,28 +27,28 @@ pub const Parser = struct {
     i: usize,
 };
 
-pub fn parse(ctx: common.Ctx, tokens: []lexer.Token) !AstNode {
+pub fn parse(ctx: common.Ctx, tokens: []lexer.Token) !AstProgram {
     var p = Parser{
         .ctx = ctx,
         .tokens = tokens,
         .i = 0,
     };
 
-    const func_def = try parse_program(&p);
+    const program = try parse_program(&p);
 
     if (peek(&p).vart != .eof) {
         return err(&p, "expected end of file but got '{s}'", .{peek(&p).lexeme});
     }
 
-    return .{ .vart = .{ .program = func_def } };
+    return program;
 }
 
-fn parse_program(p: *Parser) !Program {
+fn parse_program(p: *Parser) !AstProgram {
     const func_def = try parse_func_def(p);
     return .{ .func_def = func_def };
 }
 
-fn parse_func_def(p: *Parser) !FuncDefStmt {
+fn parse_func_def(p: *Parser) !AstFuncDef {
     try expect(p, .kw_int, "expect 'int', but got '{s}'", .{peek(p).lexeme});
     const ident = (try expect_vart(p, .ident, "expect identifier after retyrn type, but got '{s}'", .{peek(p).lexeme}));
     try expect(p, .left_paren, "expect '(' after function name", .{});
@@ -75,7 +64,7 @@ fn parse_func_def(p: *Parser) !FuncDefStmt {
     };
 }
 
-fn parse_stmt(p: *Parser) !StmtVart {
+fn parse_stmt(p: *Parser) !AstStmt {
     if (peek(p).vart == .kw_return) {
         _ = next(p);
         const expr = try parse_expr(p);
@@ -85,7 +74,7 @@ fn parse_stmt(p: *Parser) !StmtVart {
     return err(p, "unexpected token '{s}'", .{peek(p).lexeme});
 }
 
-fn parse_expr(p: *Parser) !ExprVart {
+fn parse_expr(p: *Parser) !AstExpr {
     const tok = next(p);
     if (tok.vart == .int_literal) {
         return .{ .int_literal = tok.vart.int_literal };
@@ -124,12 +113,4 @@ fn err(p: *Parser, comptime fmt: []const u8, args: anytype) error{LexerError} {
 
 fn tag(tok_vart: lexer.TokenVart) lexer.TokenTag {
     return std.meta.activeTag(tok_vart);
-}
-
-fn make_node(p: *Parser, vart: AstVart) !*AstNode {
-    const node = try p.ctx.ally.create(AstNode);
-    node.* = .{
-        .vart = vart,
-    };
-    return node;
 }
