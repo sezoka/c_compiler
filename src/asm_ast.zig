@@ -70,6 +70,7 @@ fn convert_expr(c: *Conv, buff: *InstrsBuff, expr: *const parser.AstExpr) !IrOpe
         .int_literal => |int_literal| {
             return .{ .imm = int_literal };
         },
+        else => unreachable,
     }
 }
 

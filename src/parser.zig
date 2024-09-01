@@ -14,6 +14,12 @@ pub const AstStmt = union(enum) {
 
 pub const AstExpr = union(enum) {
     int_literal: constants.Int,
+    unary: struct { op: UnaryOp, expr: *AstExpr },
+};
+
+const UnaryOp = enum {
+    invert,
+    negate,
 };
 
 pub const AstFuncDef = struct {
@@ -49,14 +55,14 @@ fn parse_program(p: *Parser) !AstProgram {
 }
 
 fn parse_func_def(p: *Parser) !AstFuncDef {
-    try expect(p, .kw_int, "expect 'int', but got '{s}'", .{peek(p).lexeme});
+    try consume(p, .kw_int, "expect 'int', but got '{s}'", .{peek(p).lexeme});
     const ident = (try expect_vart(p, .ident, "expect identifier after retyrn type, but got '{s}'", .{peek(p).lexeme}));
-    try expect(p, .left_paren, "expect '(' after function name", .{});
-    try expect(p, .kw_void, "expect 'void' as function param, but got '{s}'", .{peek(p).lexeme});
-    try expect(p, .right_paren, "expect ')' after function params list", .{});
-    try expect(p, .left_brace, "expect '{{' before function body", .{});
+    try consume(p, .left_paren, "expect '(' after function name", .{});
+    try consume(p, .kw_void, "expect 'void' as function param, but got '{s}'", .{peek(p).lexeme});
+    try consume(p, .right_paren, "expect ')' after function params list", .{});
+    try consume(p, .left_brace, "expect '{{' before function body", .{});
     const body = try parse_stmt(p);
-    try expect(p, .right_brace, "expect '}}' after function body", .{});
+    try consume(p, .right_brace, "expect '}}' after function body", .{});
 
     return .{
         .name = ident.ident,
@@ -68,21 +74,67 @@ fn parse_stmt(p: *Parser) !AstStmt {
     if (peek(p).vart == .kw_return) {
         _ = next(p);
         const expr = try parse_expr(p);
-        try expect(p, .semicolon, "expect ';' after return value, but got '{s}'", .{peek(p).lexeme});
+        try consume(p, .semicolon, "expect ';' after return value, but got '{s}'", .{peek(p).lexeme});
         return .{ .return_stmt = expr };
     }
     return err(p, "unexpected token '{s}'", .{peek(p).lexeme});
 }
 
 fn parse_expr(p: *Parser) !AstExpr {
-    const tok = next(p);
-    if (tok.vart == .int_literal) {
-        return .{ .int_literal = tok.vart.int_literal };
+    if (matches(p, .left_paren)) {
+        const expr = try parse_expr(p);
+        try consume(p, .right_paren, "expect ')' after expression, but got '{s}'", .{peek(p).lexeme});
+        return expr;
     }
-    return err(p, "unexpected token '{s}'", .{tok.lexeme});
+
+    if (matches_any_vart(p, &.{ .minus, .tilde })) |t| {
+        const expr = try parse_expr(p);
+        const expr_ptr = try p.ctx.ally.create(AstExpr);
+        expr_ptr.* = expr;
+        const op: UnaryOp = switch (t) {
+            .minus => .negate,
+            .tilde => .invert,
+            else => unreachable,
+        };
+        return .{ .unary = .{ .op = op, .expr = expr_ptr } };
+    }
+
+    if (matches_vart(p, .int_literal)) |tok_vart| {
+        return .{ .int_literal = tok_vart.int_literal };
+    }
+
+    return err(p, "unexpected token '{s}'", .{peek(p).lexeme});
 }
 
-fn expect(p: *Parser, tok_vart: lexer.TokenTag, comptime fmt: []const u8, args: anytype) !void {
+fn matches_any_vart(p: *Parser, comptime varts: []const lexer.TokenTag) ?lexer.TokenTag {
+    const tok = peek(p);
+    for (varts) |vart| {
+        if (vart == tok.vart) {
+            _ = next(p);
+            return vart;
+        }
+    }
+    return null;
+}
+
+fn matches(p: *Parser, comptime vart: lexer.TokenTag) bool {
+    if (vart == peek(p).vart) {
+        _ = next(p);
+        return true;
+    }
+    return false;
+}
+
+fn matches_vart(p: *Parser, comptime vart: lexer.TokenTag) ?lexer.TokenVart {
+    const tok = peek(p);
+    if (vart == tok.vart) {
+        _ = next(p);
+        return tok.vart;
+    }
+    return null;
+}
+
+fn consume(p: *Parser, tok_vart: lexer.TokenTag, comptime fmt: []const u8, args: anytype) !void {
     if (peek(p).vart != tok_vart)
         return err(p, fmt, args);
     _ = next(p);
