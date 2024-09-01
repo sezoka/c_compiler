@@ -14,6 +14,9 @@ pub const TokenVart = union(enum) {
     left_brace,
     right_brace,
     semicolon,
+    tilde,
+    minus,
+    minus_minus,
     eof,
 };
 pub const TokenTag = std.meta.Tag(TokenVart);
@@ -79,6 +82,8 @@ fn next_token(l: *Lexer) !Token {
 
     const c = advance(l);
     switch (c) {
+        '-' => return if (matches(l, '-')) make_token(l, .minus_minus) else make_token(l, .minus),
+        '~' => return make_token(l, .tilde),
         '{' => return make_token(l, .left_brace),
         '}' => return make_token(l, .right_brace),
         '(' => return make_token(l, .left_paren),
@@ -98,17 +103,33 @@ fn next_token(l: *Lexer) !Token {
     return err(l, "unexpected character '{c}'", .{c});
 }
 
+fn matches(l: *Lexer, c: u8) bool {
+    if (peek(l) == c) {
+        _ = advance(l);
+        return true;
+    }
+    return false;
+}
+
 fn read_number(l: *Lexer) !Token {
-    while (!is_at_end(l) and !std.ascii.isWhitespace(peek(l)) and peek(l) != ';') {
+    while (!is_at_end(l) and std.ascii.isDigit(peek(l))) {
         _ = advance(l);
     }
+    const next_char = peek(l);
+
+    // TODO remove this Scheiße when book is finished
+    if (next_char != ';' and
+        next_char != ')' and
+        next_char != '-' and next_char != '+' and
+        !std.ascii.isWhitespace(next_char))
+    {
+        _ = advance(l);
+        return err(l, "invalid number literal '{s}'", .{get_lexeme(l)});
+    }
+
     const lex = get_lexeme(l);
-    const int = std.fmt.parseInt(constants.Int, lex, 10) catch |e| {
-        if (e == error.InvalidCharacter) {
-            return err(l, "invalid number literal '{s}'", .{lex});
-        } else {
-            return err(l, "value '{s}' to large for type 'int'", .{lex});
-        }
+    const int = std.fmt.parseInt(constants.Int, lex, 10) catch {
+        return err(l, "value '{s}' to large for type 'int'", .{lex});
     };
     return make_token(l, .{ .int_literal = int });
 }

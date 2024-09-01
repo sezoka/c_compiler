@@ -48,12 +48,16 @@ pub fn main() u8 {
     const tokens = lexer.get_tokens(ctx, file_src) catch return 2;
 
     if (options.only_lex) {
+        for (tokens) |token| {
+            std.debug.print("{d}: {any}\n", .{ token.line, token.vart });
+        }
         return 0;
     }
 
     var ast = parser.parse(ctx, tokens) catch return 3;
 
     if (options.only_parse) {
+        std.debug.print("{any}\n", .{ast});
         return 0;
     }
 
