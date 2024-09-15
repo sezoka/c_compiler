@@ -61,8 +61,6 @@ fn convert_stmt(c: *Conv, buff: *InstrsBuff, stmt: *parser.AstStmt) !void {
     }
 }
 
-// fn convert_operand(c: *Conv, buff: *InstrsBuff, stmt: *parser.AstStmt) !void {}
-
 fn convert_expr(c: *Conv, buff: *InstrsBuff, expr: *const parser.AstExpr) !IrOperand {
     _ = buff;
     _ = c;

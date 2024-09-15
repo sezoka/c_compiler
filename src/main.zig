@@ -4,15 +4,22 @@ const common = @import("common.zig");
 const parser = @import("parser.zig");
 const asm_ast = @import("asm_ast.zig");
 const codegen = @import("codegen.zig");
+const tac = @import("tac.zig");
 
 const CompilerOptions = struct {
     only_lex: bool,
     only_parse: bool,
     only_codegen: bool,
+    only_tac: bool,
 };
 
 pub fn main() u8 {
-    var options = CompilerOptions{ .only_lex = false, .only_parse = false, .only_codegen = false };
+    var options = CompilerOptions{
+        .only_lex = false,
+        .only_parse = false,
+        .only_codegen = false,
+        .only_tac = false,
+    };
 
     var args_iter = std.process.args();
     _ = args_iter.next();
@@ -26,6 +33,8 @@ pub fn main() u8 {
             options.only_parse = true;
         } else if (std.mem.eql(u8, arg, "--codegen")) {
             options.only_codegen = true;
+        } else if (std.mem.eql(u8, arg, "--tacky")) {
+            options.only_tac = true;
         } else {
             std.debug.assert(src_path == null);
             src_path = arg;
@@ -61,9 +70,16 @@ pub fn main() u8 {
         return 0;
     }
 
-    const ir = asm_ast.convert_ast_to_ir(ctx, &ast) catch return 4;
+    const tac_ir = tac.convert_ast_to_tac_ir(ctx, ast) catch return 4;
+    _ = tac_ir;
 
-    const asm_code = codegen.emit_program(ctx, ir) catch return 5;
+    if (options.only_tac) {
+        return 0;
+    }
+
+    const ir = asm_ast.convert_ast_to_ir(ctx, &ast) catch return 5;
+
+    const asm_code = codegen.emit_program(ctx, ir) catch return 6;
 
     var basename = std.fs.path.basename(src_path.?);
     basename = basename[0..(basename.len - std.fs.path.extension(basename).len)];

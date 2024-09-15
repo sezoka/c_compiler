@@ -1,1 +1,1 @@
-pub const Int = u32;
+pub const Int = i32;
