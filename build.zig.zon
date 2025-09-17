@@ -1,0 +1,13 @@
+.{
+    .name = .c_compiler,
+    .version = "0.0.0",
+    .fingerprint = 0xbbf13b8259ded508,
+    .minimum_zig_version = "0.16.0-dev.235+377a8b2a3",
+    .dependencies = .{
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
