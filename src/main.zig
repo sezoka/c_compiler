@@ -29,7 +29,7 @@ pub fn main() !void {
     }
     
     if (maybe_source_path) |source_path|  {
-        compiler.run(source_path, .{}) catch |err| switch (err) {
+        compiler.run(source_path, params) catch |err| switch (err) {
             error.OutOfMemory => log.err("out of memory", .{}),
             error.CompilerError => {process.exit(1);},
         };

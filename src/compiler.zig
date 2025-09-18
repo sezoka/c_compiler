@@ -6,6 +6,7 @@ const mem = std.mem;
 const heap = std.heap;
 const fs = std.fs;
 const lexer = @import("lexer.zig");
+const parser = @import("parser.zig");
 
 const kilobyte = 1024;
 const megabyte = kilobyte * 1024;
@@ -55,6 +56,13 @@ fn readAndParseFile(path: String) !void {
     const tokens = try lexer.tokenize(src);
     lexer.printTokens(tokens);
     if (compiler_params.stop_after_lexer) {
+        return;
+    }
+
+    const ast = try parser.parse(tokens, src);
+    std.debug.print("{any}\n", .{ast});
+    parser.printAst(ast, 0);
+    if (compiler_params.stop_after_parser) {
         return;
     }
 }

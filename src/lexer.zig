@@ -1,6 +1,7 @@
 const std = @import("std");
 const debug = std.debug;
 const log = std.log;
+const meta = std.meta;
 const fmt = std.fmt;
 const chelp = @import("c_helpers.zig");
 const compiler = @import("compiler.zig");
@@ -8,6 +9,7 @@ const compiler = @import("compiler.zig");
 const keywords_map: std.StaticStringMap(TokenVart) = .initComptime(.{
     .{"return", .kw_return},
     .{"int", .kw_int},
+    .{"void", .kw_void},
 });
 
 pub const Token = struct {
@@ -15,6 +17,8 @@ pub const Token = struct {
     loc: compiler.Location,
     lexeme: compiler.String,
 };
+
+pub const TokenKind = meta.Tag(TokenVart);
 
 pub const TokenVart = union(enum) {
     kw_int,
@@ -26,7 +30,7 @@ pub const TokenVart = union(enum) {
     right_brace,
     kw_return,
     semicolon,
-    const_int: isize,
+    const_int: chelp.Int,
     const_double: chelp.Double,
     eof,
 };
