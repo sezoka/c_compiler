@@ -6,38 +6,38 @@ const meta = std.meta;
 const compiler = @import("compiler.zig");
 const chelp = @import("c_helpers.zig");
 
-const Program = struct {
+pub const Program = struct {
     func_definition: Function,
 };
 
-const Function = struct {
+pub const Function = struct {
     name: compiler.String,
     body: *Stmt,
 };
 
-const Stmt = struct {
+pub const Stmt = struct {
     vart: StmtVart,
     loc: compiler.Location,
 };
 
-const StmtVart = union(enum) {
+pub const StmtVart = union(enum) {
     return_: *Expr,
 };
 
-const ExprVart = union(enum) {
+pub const ExprVart = union(enum) {
     constant: Value,
 };
 
-const Expr = struct {
+pub const Expr = struct {
     vart: ExprVart,
     loc: compiler.Location,
 };
 
-const Value = union(enum) {
+pub const Value = union(enum) {
     int: chelp.Int,
 };
 
-const Parser = struct {
+pub const Parser = struct {
     tokens: []lexer.Token,
     pos: u32,
     src: compiler.String,
@@ -185,7 +185,7 @@ pub fn printAst(program: Program, indent: u32) void {
     printStmt(program.func_definition.body, indent + 2);
     printIndent(indent + 2); debug.print("\n", .{});
     printIndent(indent + 1); debug.print(")\n", .{});
-    debug.print(")", .{});
+    debug.print(")\n\n", .{});
 }
 
 fn printStmt(stmt: *Stmt, indent: u32) void {
@@ -217,4 +217,3 @@ fn printIndent(indent: u32) void {
         debug.print("  ", .{});
     }
 }
-

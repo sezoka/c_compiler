@@ -7,6 +7,7 @@ const heap = std.heap;
 const fs = std.fs;
 const lexer = @import("lexer.zig");
 const parser = @import("parser.zig");
+const x86_64 = @import("x86_64.zig");
 
 const kilobyte = 1024;
 const megabyte = kilobyte * 1024;
@@ -54,17 +55,46 @@ pub fn run(src_path: String, params: CompilerParams) !void {
 fn readAndParseFile(path: String) !void {
     const src = readFile(path);
     const tokens = try lexer.tokenize(src);
-    lexer.printTokens(tokens);
+    // lexer.printTokens(tokens);
     if (compiler_params.stop_after_lexer) {
         return;
     }
 
     const ast = try parser.parse(tokens, src);
-    std.debug.print("{any}\n", .{ast});
     parser.printAst(ast, 0);
     if (compiler_params.stop_after_parser) {
         return;
     }
+
+    const x64program = try x86_64.astToX64(&ast);
+    x86_64.printAsm(x64program);
+    const code = try x86_64.emitAsm(x64program);
+    debug.print("{s}\n", .{code});
+    writeFile("./tmp.s", code);
+    if (compiler_params.stop_after_codegen) {
+        return;
+    }
+
+}
+
+fn writeFile(path: String, data: []const u8) void {
+    if (fs.cwd().createFile(path, .{})) |file| {
+        defer file.close();
+        var write_buffer: [1024]u8 = undefined;
+        var writer = file.writer(&write_buffer);
+        if (writer.interface.writeAll(data)) {
+            if (writer.interface.flush()) {
+                return;
+            } else |err| {
+                log.err("unable to write file '{s}'; reason: {}", .{path, err});
+            }
+        } else |err| {
+            log.err("unable to write file '{s}'; reason: {}", .{path, err});
+        }
+    } else |err| {
+        log.err("unable to create file '{s}'; reason: {}", .{path, err});
+    }
+    process.exit(1);
 }
 
 fn readFile(path: String) String {
