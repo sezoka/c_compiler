@@ -5,6 +5,7 @@ const debug = std.debug;
 const mem = std.mem;
 const heap = std.heap;
 const fs = std.fs;
+const fs_path = fs.path;
 const lexer = @import("lexer.zig");
 const parser = @import("parser.zig");
 const x86_64 = @import("x86_64.zig");
@@ -54,6 +55,7 @@ pub fn run(src_path: String, params: CompilerParams) !void {
 
 fn readAndParseFile(path: String) !void {
     const src = readFile(path);
+    const path_without_ext = removeCExt(path);
     const tokens = try lexer.tokenize(src);
     // lexer.printTokens(tokens);
     if (compiler_params.stop_after_lexer) {
@@ -61,21 +63,62 @@ fn readAndParseFile(path: String) !void {
     }
 
     const ast = try parser.parse(tokens, src);
-    parser.printAst(ast, 0);
+    // parser.printAst(ast, 0);
     if (compiler_params.stop_after_parser) {
         return;
     }
 
     const x64program = try x86_64.astToX64(&ast);
-    x86_64.printAsm(x64program);
-    const code = try x86_64.emitAsm(x64program);
-    debug.print("{s}\n", .{code});
-    writeFile("./tmp.s", code);
+    // x86_64.printAsm(x64program);
+    const asm_code = try x86_64.emitAsm(x64program);
+    writeFile("./tmp.s", asm_code);
     if (compiler_params.stop_after_codegen) {
         return;
     }
 
+    spawnGCC("./tmp.s", path_without_ext);
+
+    deleteFile("./tmp.s");
 }
+
+fn deleteFile(path: String) void {
+    if (fs.cwd().deleteFile(path)) {
+        return;
+    } else |_| {
+        return;
+    }
+}
+
+fn removeCExt(path: String) String {
+    if (mem.endsWith(u8, path, ".c")) {
+        return path[0..path.len - 2];
+    } else {
+        return path;
+    }
+}
+
+fn spawnGCC(asm_path: String, out_path: String) void {
+    const args = [_][]const u8{"gcc", asm_path, "-o", out_path};
+    var gcc_process = process.Child.init(&args, gpa);
+    if (gcc_process.spawnAndWait()) |_| {
+        return;
+    } else |err| {
+        log.err("unable to spawn gcc, reason: {}", .{err});
+    }
+    process.exit(1);
+}
+
+// fn addCExt(path: String) String {
+//     if (mem.eql(u8, path[path.len-2..path.len], ".c")) {
+//         return path;
+//     } else {
+//         const buff = temp_arena.alloc(u8, path.len + 2) catch unreachable;
+//         @memcpy(buff[0..path.len], path);
+//         buff[buff.len - 2] = '.';
+//         buff[buff.len - 1] = 'c';
+//         return buff;
+//     }
+// }
 
 fn writeFile(path: String, data: []const u8) void {
     if (fs.cwd().createFile(path, .{})) |file| {
