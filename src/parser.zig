@@ -26,6 +26,17 @@ pub const StmtVart = union(enum) {
 
 pub const ExprVart = union(enum) {
     constant: Value,
+    unary: Unary,
+};
+
+pub const Unary = struct {
+    op: UnaryOp,
+    expr: *Expr,
+};
+
+pub const UnaryOp = enum {
+    complement,
+    negate,
 };
 
 pub const Expr = struct {
@@ -115,8 +126,31 @@ fn parseStmt(p: *Parser) !*Stmt {
     unreachable;
 }
 
-fn parseExpr(p: *Parser) !*Expr {
-    return parsePrimary(p);
+const ExprResult = compiler.CompilerError!*Expr;
+fn parseExpr(p: *Parser) ExprResult {
+    return parseUnary(p);
+}
+
+fn parseUnary(p: *Parser) !*Expr {
+    const expected_tokens = [_]lexer.TokenKind{.minus, .negate};
+    if (matchesAny(p, &expected_tokens)) |tok| {
+        const op: UnaryOp = switch (tok.vart) {
+            .minus => .complement,
+            .negate => .negate,
+            else => unreachable,
+        };
+
+        const expr = try parseUnary(p);
+
+        return makeExpr(p, tok.loc, .{
+            .unary = .{
+                .op = op,
+                .expr = expr,
+            }
+        });
+    } else {
+        return parsePrimary(p);
+    }
 }
 
 fn parsePrimary(p: *Parser) !*Expr {
@@ -125,6 +159,11 @@ fn parsePrimary(p: *Parser) !*Expr {
         .const_int => |int| {
             return makeExpr(p, tok.loc, .{ .constant = .{ .int = int } });
         },
+        .left_paren => {
+            const expr = try parseExpr(p);
+            _ = try expect(p, .right_paren);
+            return expr;
+        },
         else => |tv| {
             log.err("parser: unexpected token '{any}'", .{tv});
             return error.CompilerError;
@@ -132,13 +171,25 @@ fn parsePrimary(p: *Parser) !*Expr {
     }
 }
 
-fn matches(p: *Parser, tv: lexer.TokenKind) bool {
-    if (peek(p).vart == tv) {
-        _ = next(p);
-        return true;
+fn matches(p: *Parser, tk: lexer.TokenKind) bool {
+    return matchesTok(p, tk) != null;
+}
+
+fn matchesTok(p: *Parser, tk: lexer.TokenKind) ?*lexer.Token {
+    if (peek(p).vart == tk) {
+        return next(p);
     } else {
-        return false;
+        return null;
     }
+}
+
+fn matchesAny(p: *Parser, tks: []const lexer.TokenKind) ?*lexer.Token {
+    for (tks) |tk| {
+        if (peek(p).vart == tk) {
+            return next(p);
+        }
+    }
+    return null;
 }
 
 fn makeStmt(p: *Parser, start_loc: compiler.Location, vart: StmtVart) !*Stmt {

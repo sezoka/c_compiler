@@ -32,6 +32,9 @@ pub const TokenVart = union(enum) {
     semicolon,
     const_int: chelp.Int,
     const_double: chelp.Double,
+    decrement,
+    negate,
+    minus,
     eof,
 };
 
@@ -68,6 +71,15 @@ fn peek(t: *Tokenizer) u8 {
         return t.src[t.pos];
     } else {
         return 0;
+    }
+}
+
+fn matches(t: *Tokenizer, c: u8) bool {
+    if (peek(t) == c) {
+        _ = next(t);
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -137,19 +149,21 @@ fn nextToken(t: *Tokenizer) ?Token {
         '{' => return makeToken(t, .left_brace),
         '}' => return makeToken(t, .right_brace),
         ';' => return makeToken(t, .semicolon),
+        '~' => return makeToken(t, .negate),
+        '-' => return if (matches(t, '-'))
+            makeToken(t, .decrement)
+            else makeToken(t, .minus),
         0 => return makeToken(t, .eof),
         else => {
             if (isFirstIdentChar(c)) {
                 return readIdent(t);
             } else if (isDigit(c)) {
                 return readNumber(t);
-            } else {
-                log.err("lexer: unexpected character '{c}'", .{c});
-                return null;
             }
         }
     }
 
+    log.err("lexer: unexpected character '{c}'", .{c});
     return null;
 }
 

@@ -75,6 +75,7 @@ fn convertExpr(expr: *parser.Expr, instructions: *InstructionsList) !Operand {
                 }
             }
         },
+        else => unreachable,
     }
 }
 

@@ -8,5 +8,5 @@
 */
 
 int main(void) {
-    return 123;
+    return -(-(~123));
 }

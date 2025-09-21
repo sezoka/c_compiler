@@ -20,15 +20,15 @@ pub const SHRT_MIN = math.minInt(Short);
 pub const SHRT_MAX = math.maxInt(Short);
 pub const USHRT_MAX = math.maxInt(UShort);
 
-pub const Int = i16;
-pub const UInt = u16;
+pub const Int = i32;
+pub const UInt = u32;
 pub const INT_BIT = @bitSizeOf(Int);
 pub const INT_MIN = math.minInt(Int);
 pub const INT_MAX = math.maxInt(Int);
 pub const UINT_MAX = math.maxInt(UInt);
 
-pub const Long = i32;
-pub const ULong = u32;
+pub const Long = i64;
+pub const ULong = u64;
 pub const LONG_BIT = @bitSizeOf(Long);
 pub const LONG_MIN = math.minInt(Long);
 pub const LONG_MAX = math.maxInt(Long);

@@ -30,6 +30,7 @@ pub const temp_arena = temp_arena_state.allocator();
 
 pub const CompilerError = error {
     CompilerError,
+    OutOfMemory,
 };
 
 pub const CompilerParams = struct {
