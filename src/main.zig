@@ -18,6 +18,8 @@ pub fn main() !void {
             params.stop_after_parser = true;
         } else if (mem.eql(u8, arg, "--codegen")) {
             params.stop_after_codegen = true;
+        } else if (mem.eql(u8, arg, "--tacky")) {
+            params.stop_after_tacky = true;
         } else {
             if (maybe_source_path == null) {
                 maybe_source_path = arg;

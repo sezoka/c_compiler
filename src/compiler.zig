@@ -9,6 +9,7 @@ const fs_path = fs.path;
 const lexer = @import("lexer.zig");
 const parser = @import("parser.zig");
 const x86_64 = @import("x86_64.zig");
+const tac = @import("tac.zig");
 
 const kilobyte = 1024;
 const megabyte = kilobyte * 1024;
@@ -37,6 +38,7 @@ pub const CompilerParams = struct {
     stop_after_lexer: bool = false,
     stop_after_parser: bool = false,
     stop_after_codegen: bool = false,
+    stop_after_tacky: bool = false,
 };
 
 var compiler_params: CompilerParams = undefined;
@@ -56,7 +58,7 @@ pub fn run(src_path: String, params: CompilerParams) !void {
 
 fn readAndParseFile(path: String) !void {
     const src = readFile(path);
-    const path_without_ext = removeCExt(path);
+    // const path_without_ext = removeCExt(path);
     const tokens = try lexer.tokenize(src);
     // lexer.printTokens(tokens);
     if (compiler_params.stop_after_lexer) {
@@ -69,17 +71,24 @@ fn readAndParseFile(path: String) !void {
         return;
     }
 
-    const x64program = try x86_64.astToX64(&ast);
-    // x86_64.printAsm(x64program);
-    const asm_code = try x86_64.emitAsm(x64program);
-    writeFile("./tmp.s", asm_code);
-    if (compiler_params.stop_after_codegen) {
+    const tac_prog = try tac.astToTac(ast);
+    tac.printTac(&tac_prog);
+    if (compiler_params.stop_after_tacky) {
         return;
     }
 
-    spawnGCC("./tmp.s", path_without_ext);
+    // const x64program = try x86_64.astToX64(&ast);
 
-    deleteFile("./tmp.s");
+    // // x86_64.printAsm(x64program);
+    // const asm_code = try x86_64.emitAsm(x64program);
+    // writeFile("./tmp.s", asm_code);
+    // if (compiler_params.stop_after_codegen) {
+    //     return;
+    // }
+    //
+    // spawnGCC("./tmp.s", path_without_ext);
+    //
+    // deleteFile("./tmp.s");
 }
 
 fn deleteFile(path: String) void {

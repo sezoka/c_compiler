@@ -1,1 +1,1 @@
-zig build run -- ./examples/demo.c --parse
+zig build run -- ./examples/demo.c
